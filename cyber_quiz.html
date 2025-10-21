@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cybersecurity Oefentoets – 3 niveaus</title>
+<style>
+  :root{--w:760px}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f8fa;color:#111;margin:0}
+  header{background:#0b5fff;color:#fff;padding:18px}
+  header h1{margin:0;font-size:20px}
+  main{max-width:var(--w);margin:24px auto;padding:0 14px}
+  .card{background:#fff;border:1px solid #e6e8eb;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:18px}
+  .levels{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  button{cursor:pointer;border:1px solid #cbd5e1;background:#fff;border-radius:10px;padding:10px 14px;font-weight:600}
+  button.primary{background:#0b5fff;color:#fff;border-color:#0b5fff}
+  button.ghost{background:transparent;border-color:#d1d5db}
+  .muted{color:#6b7280;font-size:14px}
+  .opt{display:block;margin:8px 0;padding:10px;border:1px solid #e5e7eb;border-radius:8px}
+  .footer{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .hidden{display:none}
+  .pill{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 10px;font-size:12px;margin-left:6px}
+</style>
+</head>
+<body>
+<header><h1>Cybersecurity Oefentoets <span class="pill">Basis / Normaal / Moeilijk</span></h1></header>
+<main>
+  <!-- Keuze -->
+  <section id="menu" class="card">
+    <h2>Kies je niveau</h2>
+    <p class="muted">Vragen worden willekeurig getoond. Je krijgt direct je eindscore en kunt daarna opnieuw starten.</p>
+    <div class="levels">
+      <button class="primary" onclick="start('basis')">🟢 Basis (10 vragen)</button>
+      <button class="primary" onclick="start('normaal')">🟡 Normaal (10 vragen)</button>
+      <button class="primary" onclick="start('moeilijk')">🔴 Moeilijk (10 vragen)</button>
+    </div>
+  </section>
+
+  <!-- Quiz -->
+  <section id="quizWrap" class="card hidden">
+    <div id="quizHead">
+      <h2 id="titel">Niveau</h2>
+      <p class="muted" id="progress">Vraag 1 / 10</p>
+    </div>
+    <div id="vraagblok"></div>
+    <div class="footer">
+      <button class="primary" onclick="volgende()">Volgende</button>
+      <button class="ghost" onclick="terug()">Terug naar niveaus</button>
+      <button class="ghost" onclick="opnieuw()">Opnieuw</button>
+    </div>
+  </section>
+
+  <!-- Resultaat -->
+  <section id="result" class="card hidden">
+    <h2>Resultaat</h2>
+    <p id="scoreTxt" style="font-size:18px;font-weight:700"></p>
+    <div id="review"></div>
+    <div class="footer">
+      <button class="primary" onclick="opnieuw()">Opnieuw zelfde niveau</button>
+      <button class="ghost" onclick="naarMenu()">Andere niveau kiezen</button>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ------------ Vraagbanken ------------ */
+const QB = {
+  basis: [
+    {q:"Wat is cybersecurity?", a:["Bescherming tegen digitale aanvallen","Het maken van virussen","Het blokkeren van internet"], c:0},
+    {q:"Wat betekent vertrouwelijkheid?", a:["Iedereen kan data zien","Alleen bevoegden hebben toegang","Data mag vrij gedeeld worden"], c:1},
+    {q:"Wat betekent integriteit?", a:["Data blijft correct","Data mag vrij aangepast worden","Data wordt vernietigd"], c:0},
+    {q:"Wat betekent beschikbaarheid?", a:["Toegang voor geautoriseerde gebruikers wanneer nodig","Alleen admin toegang","Data altijd offline"], c:0},
+    {q:"Wat is een datalek?", a:["Onbevoegde toegang tot data","Een back-up","Een OS-update"], c:0},
+    {q:"Wat is een script kiddie?", a:["Onervaren aanvaller met kant-en-klare tools","Overheidshacker","Systeembeheerder"], c:0},
+    {q:"Wat is een white hat hacker?", a:["Test met toestemming","Steelt data","Werkt illegaal"], c:0},
+    {q:"Wat is een black hat hacker?", a:["Ethical onderzoeker","Misbruikt kwetsbaarheden voor winst","Securitytrainer"], c:1},
+    {q:"Wat is cyberoorlog?", a:["Digitale aanvallen tussen landen om voordeel te behalen","Online discussies","DDoS op een klaslokaal"], c:0},
+    {q:"Wat doet encryptie?", a:["Maakt data onleesbaar zonder sleutel","Verwijdert data","Maakt data publiek"], c:0}
+  ],
+  normaal: [
+    {q:"Wat beschrijft de McCumber-kubus?", a:["Model voor informatiebeveiliging","Encryptie-algoritme","Firewalltype"], c:0},
+    {q:"Wat is 'data in transit'?", a:["Data op schijf","Data die wordt verzonden","Data in RAM"], c:1},
+    {q:"Hoe borg je integriteit technisch?", a:["Hash/controlesom","2FA","VPN"], c:0},
+    {q:"Interne dreiging is:", a:["Externe hacker","Werknemer/partner die (on)bewust schade veroorzaakt","Natuurramp"], c:1},
+    {q:"Voorbeeld van intellectueel eigendom:", a:["Productontwerp/handelsmerk","IP-adres","Gebruikersnaam"], c:0},
+    {q:"Hoofddoel cyberoorlog:", a:["Economisch/militair voordeel","Amusement","Marketing"], c:0},
+    {q:"Stuxnet was:", a:["Malware die fysieke schade toebracht in industriële omgeving","Phishingkit","Ransomware"], c:0},
+    {q:"Vertrouwelijkheid borg je o.a. met:", a:["Encryptie + 2FA","Back-ups","Logging"], c:0},
+    {q:"Beschikbaarheid betekent:", a:["Toegang voor geautoriseerden wanneer nodig","Versleuteld opslaan","Alles delen"], c:0},
+    {q:"Reputatieschade door datalek is:", a:["Verlies van vertrouwen/klanten","Meer verkoop","Sneller herstel"], c:0}
+  ],
+  moeilijk: [
+    {q:"Hotelketen gehackt via gestolen medewerkers-credentials. Welke dreiging?", a:["Interne dreiging","Externe dreiging via insider credentials","Natuurlijke dreiging"], c:1},
+    {q:"Honeypot veroorzaakt netwerkvertraging. Waarschijnlijke oorzaak?", a:["Onvoldoende isolatie van honeypot","Firewall stateful inspectie","IDS met port mirroring"], c:0},
+    {q:"Primaire functie van crypto-mining:", a:["Transacties verifiëren en nieuwe munten creëren","Gebruikers registreren","Blokken verwijderen"], c:0},
+    {q:"Privé IPv6-range (niet internet-routeerbaar):", a:["2001::/32","fc00::/7","ff00::/8"], c:1},
+    {q:"Thuiswerk over publiek internet beveiligen—beste maatregel:", a:["Always-on remote-access VPN","Site-to-site VPN","DNS wisselen"], c:0},
+    {q:"Direct na incident: beste ondersteuning voor forensisch onderzoek:", a:["Immutable logs met tijdsynchronisatie","Back-up terugzetten","Alle poorten sluiten"], c:0},
+    {q:"Malware die zich diep nestelt en zich verbergt:", a:["Rootkit","Adware","Worm"], c:0},
+    {q:"APT betekent:", a:["Geavanceerde, langdurige, gerichte aanval door goed gefinancierde groep","Korte spamcampagne","Eenvoudige phishing"], c:0},
+    {q:"Openbaar toegankelijke studenten-database. Welk CIA-principe geschonden?", a:["Vertrouwelijkheid","Integriteit","Beschikbaarheid"], c:0},
+    {q:"Rol OSI-laag 5 (Session):", a:["Beheert en onderhoudt de verbinding/sessie","Verstuurt bits","Bepaalt route (IP)"], c:0}
+  ]
+};
+
+/* ------------ Logica ------------ */
+const menu = document.getElementById('menu');
+const quizWrap = document.getElementById('quizWrap');
+const result = document.getElementById('result');
+const vraagblok = document.getElementById('vraagblok');
+const progress = document.getElementById('progress');
+const titel = document.getElementById('titel');
+const scoreTxt = document.getElementById('scoreTxt');
+const review = document.getElementById('review');
+
+let niveau = null, vragen = [], idx=0, score=0, gekozenen=[];
+
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]} return arr }
+
+function start(niv){
+  niveau = niv;
+  vragen = shuffle(QB[niveau].map(v => ({...v, a: shuffle([...v.a])})));
+  idx=0; score=0; gekozenen=[];
+  menu.classList.add('hidden');
+  result.classList.add('hidden');
+  quizWrap.classList.remove('hidden');
+  titel.textContent = `Niveau: ${niv[0].toUpperCase()+niv.slice(1)}`;
+  toon();
+}
+
+function toon(){
+  const v = vragen[idx];
+  progress.textContent = `Vraag ${idx+1} / ${vragen.length}`;
+  let html = `<h3>${v.q}</h3>`;
+  v.a.forEach((opt,i)=>{
+    html += `<label class="opt"><input type="radio" name="opt" value="${i}"> ${opt}</label>`;
+  });
+  vraagblok.innerHTML = html;
+}
+
+function volgende(){
+  const sel = document.querySelector("input[name='opt']:checked");
+  if(!sel){ alert("Kies een antwoord!"); return; }
+  const v = vragen[idx];
+  const gekozenIndex = parseInt(sel.value,10);
+  const juistIndex = v.a.indexOf(v.a.find((_,i)=> i === v.a.findIndex(x=>x===v.a[v.c]) )); // dummy to keep structure
+  // Vinden van correcte optie gebaseerd op oorspronkelijke index v.c:
+  const correctText = v.a.find(x => x === QB[niveau].find(o=>o.q===v.q).a[QB[niveau].find(o=>o.q===v.q).c]);
+  const correctIndex = v.a.indexOf(correctText);
+  if(gekozenIndex === correctIndex) score++;
+  gekozenen.push({vraag:v.q, gekozen:v.a[gekozenIndex], correct:correctText});
+  idx++;
+  if(idx < vragen.length) toon();
+  else eind();
+}
+
+function eind(){
+  quizWrap.classList.add('hidden');
+  result.classList.remove('hidden');
+  scoreTxt.textContent = `Je score: ${score} / ${vragen.length}`;
+  review.innerHTML = gekozenen.map((r,i)=>{
+    const goed = r.gekozen === r.correct;
+    return `<p><strong>${i+1}. ${r.vraag}</strong><br>
+      Jouw antwoord: ${r.gekozen} ${goed ? "✅" : "❌"}<br>
+      ${goed ? "" : `Correct: <em>${r.correct}</em>`}
+    </p>`;
+  }).join("");
+}
+
+function opnieuw(){ start(niveau); }
+function naarMenu(){ result.classList.add('hidden'); menu.classList.remove('hidden'); }
+function terug(){ if(confirm("Weet je zeker dat je wilt stoppen met deze quiz?")) naarMenu(); }
+</script>
+</body>
+</html>
